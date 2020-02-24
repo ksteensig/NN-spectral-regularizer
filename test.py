@@ -58,6 +58,9 @@ for i in outputs[0]:
     i.backward(retain_graph=True)
     grad.append(inputs.grad.clone())
 
+#set values inside the range [-0.01,0.01] to 0, this forces sparsity
+#grad[7][grad[7]==torch.clamp(grad[7], -0.01, 0.01)] = 0
+    
 optimizer.zero_grad()
 loss = (outputs - ideal_out).pow(2).sum()
 loss.backward()
