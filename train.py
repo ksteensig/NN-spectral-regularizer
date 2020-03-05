@@ -4,7 +4,7 @@ trainset = torchvision.datasets.MNIST(root='./data',
                                       train=True,
                                       download=True,
                                       transform=transforms.ToTensor())
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=128)
+trainloader = torch.utils.data.DataLoader(trainset, batch_size=128, pin_memory=True)
 
 net = Net()
 
