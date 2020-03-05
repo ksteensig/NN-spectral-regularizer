@@ -7,21 +7,19 @@ import torchvision
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 
-PATH = './mnist_net.pth'
+PATH = 'mnist_1_6144'
 
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        # an affine operation: y = Wx + b
-        self.fc1 = nn.Linear(784, 256)
-        self.fc2 = nn.Linear(256, 256)
-        self.fc3 = nn.Linear(256, 10)
+        N = 6144
+        self.fc1 = nn.Linear(784, N)
+        self.fc4 = nn.Linear(N, 10)
 
     def forward(self, x):
         x = x.view(-1, self.num_flat_features(x))
         x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
+        x = self.fc4(x)
         return x
 
     def num_flat_features(self, x):

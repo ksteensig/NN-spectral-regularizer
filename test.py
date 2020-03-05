@@ -2,7 +2,8 @@ from nn import *
 import numpy as np
 
 net = Net()
-net.load_state_dict(torch.load(PATH))
+
+net.load_state_dict(torch.load(PATH + '/' + PATH + '.pth'))
 
 testset = torchvision.datasets.MNIST(root='./data',
                                      train=False,
@@ -17,6 +18,7 @@ optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
 correct = 0
 total = 0
 images = None
+
 for data in testloader:
     images, labels = data
     images.requires_grad_()
@@ -26,7 +28,7 @@ for data in testloader:
     correct += (predicted == labels).sum().item()
     
     
-print('Accuracy of the network on the 10000 test images: %d %%' %
+print('Accuracy of the network on the 10000 test images: %lf %%' %
       (100 * correct / total))
 
 i = 1
@@ -35,6 +37,7 @@ for o in outputs.t():
     optimizer.zero_grad()
     o.backward(torch.ones_like(o), retain_graph=True)
     reshaped_grad = images.grad.view(10000, 784)
-    print(reshaped_grad.numpy().shape)
-    np.savetxt('edjm/edjm' + str(i) + '.csv', reshaped_grad.numpy(), delimiter=',')
+    print(i)
+    #np.savetxt(PATH + '/' + PATH + str(i) + '.csv', reshaped_grad.numpy(), delimiter=',')
     i = i+1
+
