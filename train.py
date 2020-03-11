@@ -1,6 +1,7 @@
 from nn import *
 from sys import argv, exit
 from math import floor
+from sparse_svd import sparse_svd
 
 batch_size = 128
 m = 10000  # height of the EDJM matrices (amount of samples used for training)
@@ -19,7 +20,8 @@ net_inputs = int(argv[2])
 net_outputs = int(argv[3])
 net_layer_count = int(argv[4])
 net_layer_units = int(argv[5])
-path = net_type + '_' + str(net_layer_count) + '_' + str(net_layer_count)
+
+path = net_type + '_' + str(net_layer_count) + '_' + str(net_layer_units)
 
 net = FFNet(net_inputs, net_outputs, net_layer_units, net_layer_count, path)
 
@@ -62,23 +64,23 @@ def get_batch_jacobian(net, x, to):
                       *tmp_shape[2:]))  # x.shape = b*to,i y.shape = b*to,to
     y_shape = y.shape[1:]  # y.shape = b*to,to
     y = y.reshape(x_batch, to, to)  # y.shape = b,to,to
-    input_val = torch.eye(to).reshape(1, to, to).repeat(
-        x_batch, 1, 1)  # input_val.shape = b,to,to  value is (eye)
-    y.backward(input_val)  # y.shape = b,to,to
+    input_val = torch.eye(to).reshape(1, to, to).repeat(x_batch, 1, 1).to(
+        device)  # input_val.shape = b,to,to  value is (eye)
+    y.backward(input_val, retain_graph=True)  # y.shape = b,to,to
     return x.grad.reshape(x_batch, *y_shape, *x_shape).data  # x.shape = b,o,
 
+
 # train network
-for epoch in range(2):  # loop over the dataset multiple times
+for epoch in range(20):  # loop over the dataset multiple times
     running_loss = 0.0
     for i, data in enumerate(trainloader):
         # get the inputs; data is a list of [inputs, labels]
         inputs, labels = data[0].to(device), data[1].to(device)
 
-
         optimizer.zero_grad()
 
-        print(i)
-        get_batch_jacobian(net, inputs, 10).view(128, 10, 784)
+        edjm[:k, i * batch_size:(i + 1) * batch_size] = get_batch_jacobian(
+            net, inputs, 10).view(128, 10, 784).permute(1, 0, 2).requires_grad_()
 
         optimizer.zero_grad()
 
@@ -88,9 +90,19 @@ for epoch in range(2):  # loop over the dataset multiple times
         loss.backward()
         optimizer.step()
 
-        if i == epoch_size:
+        if i == epoch_size - 1:
             break
 
+    singular_values = 0
+    
+    for i in range(k):
+        singular_values = sparse_svd(edjm[i])[1].log().sum()
+        
+    optimizer.zero_grad()
+    loss = -singular_values
+    loss.backward(retain_graph=True)
+    optimizer.step()
+    
     print(epoch)
 
 torch.save(net.state_dict(), net.path + '.pth')

@@ -26,11 +26,4 @@ def sparse_svd(X):
     Vt = Y.t().mm(T[:,:k]).mm(St.inverse())
     Ut = X.mm(Vt)
 
-    return Ut.svd(compute_uv=False)
-
-X = torch.rand(100)
-X = X.diag()
-S = sparse_svd(X)
-
-print(S)
-print(X.svd(compute_uv=False))
+    return Ut.svd(compute_uv=True)

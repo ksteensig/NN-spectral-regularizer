@@ -1,9 +1,9 @@
 from nn import *
 import numpy as np
 
-net = Net()
+net = FFNet(784, 10, 3072, 2, 'mnist_2_3072')
 
-net.load_state_dict(torch.load(PATH + '/' + PATH + '.pth'))
+net.load_state_dict(torch.load(net.path + '.pth'))
 
 testset = torchvision.datasets.MNIST(root='./data',
                                      train=False,
@@ -26,18 +26,6 @@ for data in testloader:
     _, predicted = torch.max(outputs.data, 1)
     total += labels.size(0)
     correct += (predicted == labels).sum().item()
-    
-    
+
 print('Accuracy of the network on the 10000 test images: %lf %%' %
       (100 * correct / total))
-
-i = 1
-
-for o in outputs.t():
-    optimizer.zero_grad()
-    o.backward(torch.ones_like(o), retain_graph=True)
-    reshaped_grad = images.grad.view(10000, 784)
-    print(i)
-    #np.savetxt(PATH + '/' + PATH + str(i) + '.csv', reshaped_grad.numpy(), delimiter=',')
-    i = i+1
-
