@@ -2,20 +2,19 @@ from nn import *
 from sys import argv, exit
 from math import floor
 from sparse_svd import sparse_svd
-from jacobian import batch_jacobian
 import random
 
 from train import train
 from test import test
 
 epochs = 20
-batch_size = 128
+batch_size = 256
 height = 10000  # height of the EDJM matrices (amount of samples used for training)
 width = 784  # width of the EDJM matrices (size of an MNIST image vector)
 outputs = 10  # number of outputs/EDJMs
 
-optimize_hyper_parameter = True
-do_train = False
+optimize_hyper_parameter = False
+do_train = True
 do_test = False
 
 hyper_parameter = 0.1
