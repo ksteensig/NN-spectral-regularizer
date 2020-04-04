@@ -22,11 +22,11 @@ def train(net, loader, device, epochs, batch_size, outputs, width, height, hyper
         for i, data in enumerate(loader):
             print(i)
             # get the inputs; data is a list of [inputs, labels]
-            images, labels = data[0].to(device, non_blocking = True), data[1].to(device, non_blocking=True)
+            images, labels = data[0].to(device), data[1].to(device, non_blocking=True)
 
             images.requires_grad_()
 
-            result = net(images).to(device, non_blocking=True)
+            result = net(images).to(device)
 
             #result.t()[0].backward(torch.ones_like(result.t()[0]), retain_graph=True)
 
