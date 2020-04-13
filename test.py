@@ -6,7 +6,7 @@ def test(net, loader):
     total = 0
 
     for i, data in enumerate(loader):
-        images, labels = data
+        images, labels = data[0].to('cuda:0'), data[1].to('cuda:0')
         outputs = net(images)
         _, predicted = torch.max(outputs.data, 1)
         total += labels.size(0)
