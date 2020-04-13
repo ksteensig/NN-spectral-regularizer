@@ -7,7 +7,6 @@ import random
 from train import train
 from test import test
 
-epochs = 20
 batch_size = 256
 height = 10000  # height of the EDJM matrices (amount of samples used for training)
 width = 784  # width of the EDJM matrices (size of an MNIST image vector)
@@ -17,7 +16,7 @@ optimize_hyper_parameter = False
 do_train = True
 do_test = False
 
-hyper_parameter = 0.1
+hyper_parameter = 0.0
 
 # handle configuration inputs, exit if there are not enough
 if len(argv) < 6:
@@ -37,14 +36,19 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 net = FFNet(net_inputs, net_outputs, net_layer_units, net_layer_count, path)
 
 # set up data, this should ideally be done based on the net_type
-trainset = torchvision.datasets.MNIST(root='./data',
+dataset = torchvision.datasets.MNIST(root='./data',
                                       train=True,
                                       download=True,
                                       transform=transforms.ToTensor())
+
+trainset, valset = torch.utils.data.random_split(dataset, [50000, 10000])
+
 trainloader = torch.utils.data.DataLoader(trainset,
                                           batch_size=batch_size,
                                           pin_memory=True,
-                                          shuffle=False)
+                                          shuffle=True)
+
+validationloader = torch.utils.data.DataLoader(valset, batch_size=10000, pin_memory=True)
 
 testset = torchvision.datasets.MNIST(root='./data',
                                      train=False,
@@ -59,28 +63,28 @@ net.to(device, non_blocking=True)
 print(net)
 
 if optimize_hyper_parameter:
-    old_result = 0
-    best_hp = 0
     for i in range(11):
         hp = i * 0.1
         net = FFNet(net_inputs, net_outputs, net_layer_units, net_layer_count,
-                    path)
-        train(net, trainloader, device, epochs, batch_size, outputs, width,
+                    path).to(device)
+        train(net, trainloader, device, batch_size, outputs, width,
               height, hp, True)
 
         new_result = test(net, testloader)
-
-        if new_result > old_result:
-            old_result = new_result
-            best_hp = hp
-
-    print('best lambda: ' + str(best_hp))
+        print(str(hp) + ' : ' + str(new_result))
         
 
-if do_train:
-    train(net, trainloader, device, epochs, batch_size, outputs, width, height,
-          hyper_parameter, True)
+def train_fun():
+    train(net, trainloader, validationloader, device, batch_size, outputs, width, height,
+          hyper_parameter, False)
+    print('testing score of ' + str(test(net, testloader)))
+
     torch.save(net.state_dict(), path + '.pth')
+
+if do_train:
+    from timeit import Timer
+    t = Timer(train_fun)
+    print(t.timeit(number=1))
 
 if do_test:
     net.load_state_dict(torch.load(path + '.pth'))
