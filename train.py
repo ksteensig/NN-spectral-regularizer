@@ -1,15 +1,11 @@
 from nn import *
 from sys import argv, exit
 from math import floor
-from sparse_svd import sparse_svd
-#from jacobian import batch_jacobian
-import random
+from torch_batch_ops import batch_svd
+from test import test
 
-#make the system deterministic
-random.seed(1)
-torch.manual_seed(1)
 
-def train(net, loader, device, epochs, batch_size, outputs, width, height, hyper_parameter, verbose=False):
+def train(net, trainloader, validationloader, device, batch_size, outputs, width, height, hyper_parameter, regularizer=False):
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
 
@@ -17,10 +13,14 @@ def train(net, loader, device, epochs, batch_size, outputs, width, height, hyper
     # epoch_size * batch_size <= m, orders of 2 may not always be a factor of m
     edjm = torch.zeros(outputs, epoch_size * batch_size, width).to(device)
 
-    for epoch in range(epochs):
-        running_loss = 0.0
-        for i, data in enumerate(loader):
-            print(i)
+    eps = -10e-5
+    old_loss = 1001.0
+    new_loss = 1000.0
+
+    epoch = 1
+
+    while old_loss > new_loss:
+        for i, data in enumerate(trainloader):
             # get the inputs; data is a list of [inputs, labels]
             images, labels = data[0].to(device), data[1].to(device, non_blocking=True)
 
@@ -28,16 +28,9 @@ def train(net, loader, device, epochs, batch_size, outputs, width, height, hyper
 
             result = net(images).to(device)
 
-            #result.t()[0].backward(torch.ones_like(result.t()[0]), retain_graph=True)
-
             for o in result.t():
                 optimizer.zero_grad()
-                #print(o.size())
                 o.backward(torch.ones_like(o), retain_graph=True)
-
-                #print(images.grad.size())
-                #edjm[0, i*batch_size:(i+1)*batch_size] = images.grad.view(batch_size, width)
-                #sparse_svd(images.grad.view(batch_size,width))
 
             optimizer.zero_grad()
             
@@ -48,17 +41,30 @@ def train(net, loader, device, epochs, batch_size, outputs, width, height, hyper
             if i == epoch_size - 1:
                 break
 
-        singular_values = 0
-        """
-        for i in range(outputs):
-            singular_values = edjm[i].svd()[1].log().sum()
+        if regularizer:
+            edjm.requires_grad = True
+            U,S,V = batch_svd(edjm)
+            optimizer.zero_grad()
+            loss = -hyper_parameter*S.log().sum()
+            loss.backward(retain_graph=True)
+            optimizer.step()
 
-        optimizer.zero_grad()
-        loss = -hyper_parameter*singular_values
-        loss.backward(retain_graph=True)
-        optimizer.step()
-        """
-        if verbose:
-            print(epoch)
-    if verbose:
-        print("Finished training")
+        if (epoch-1) % 5 == 0:
+            old_loss = new_loss
+            new_loss = validation(net, device, criterion, validationloader)
+            print('epoch ' + str(epoch) + ' has validation loss of ' + str(new_loss))
+
+        epoch = epoch + 1
+
+    print("Finished training")
+
+
+def validation(net, device, loss_fun, validationloader):
+    loss = 0
+    for i, data in enumerate(validationloader):
+        images, labels = data[0].to(device), data[1].to(device, non_blocking=True)
+        result = net(images).to(device)
+
+        loss = loss + loss_fun(result, labels)
+
+    return loss.item()
