@@ -11,13 +11,13 @@ class BatchcSVDFunction(torch.autograd.Function):
         n = size[2]
         batch_size = size[0]
 
-        p = 10
-        k = math.floor(n/10)
+        p = 20
+        k = math.floor(n*0.60)
         l = k+p # estimate a low rank approx that is 10% of  with p oversampling
 
-        Phi = torch.randint(0,2,(batch_size, l, m),device='cuda:0',dtype=torch.float32)
-        Y = Phi.matmul(X)
-        #Y = X[:,:l,:]
+        #Phi = torch.randint(0,2,(batch_size, l, m),device='cuda:0',dtype=torch.float32)
+        #Y = Phi.matmul(X)
+        Y = X[:,:l,:]
         Yt = Y.transpose(1,2)
 
         B = Y.matmul(Yt)

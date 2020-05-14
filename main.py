@@ -1,7 +1,6 @@
 from nn import *
 from sys import argv, exit
 from math import floor
-from sparse_svd import sparse_svd
 import random
 
 from train import train
@@ -16,7 +15,7 @@ optimize_hyper_parameter = False
 do_train = True
 do_test = False
 
-hyper_parameter = 0.0
+hyper_parameter = 10000
 
 # handle configuration inputs, exit if there are not enough
 if len(argv) < 6:
@@ -76,7 +75,7 @@ if optimize_hyper_parameter:
 
 def train_fun():
     train(net, trainloader, validationloader, device, batch_size, outputs, width, height,
-          hyper_parameter, False)
+          hyper_parameter, True)
     print('testing score of ' + str(test(net, testloader)))
 
     torch.save(net.state_dict(), path + '.pth')
