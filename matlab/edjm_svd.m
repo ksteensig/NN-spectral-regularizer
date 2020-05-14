@@ -44,6 +44,18 @@ svds = svds./10;
 %% plot
 plot(svds(1:74,:))
 legend('1 layer, 6144 units','2 layers, 3072 units','3 layers, 2048 units','4 layers, 1536 units')
-xlabel('Singular value order'
-)
+xlabel('Singular value order')
 ylabel('Value')
+
+%%
+
+mse_svd = zeros(10,4);
+
+for i=1:4
+    for j=1:10
+        [u,s,v] = svd(mnist_data{j,i});
+        [U,S,V] = sparse_svd(mnist_data{j,i});
+        delta = (diag(S) -  diag(s(1:78,1:78)));
+        mse_svd(j,i) = sum(delta.^2)/length(diag(s));
+    end
+end
